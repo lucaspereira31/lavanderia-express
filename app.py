@@ -101,3 +101,30 @@ def criar_pedido():
         mensagem = (
             f"Olá {nome}! Seu pedido na Lavanderia foi registrado com sucesso!\n\n"
             f"📄 *Ordem de Serviço:* #{pedido_id}\n"
+            f"💰 *Total:* R$ {total_pedido:.2f}\n\n"
+            f"Avisaremos assim que suas peças estiverem prontas para retirada!"
+        )
+        whatsapp_url = f"https://wa.me/{telefone_limpo}?text={urllib.parse.quote(mensagem)}"
+
+        return jsonify({
+            "sucesso": True,
+            "pedido_id": pedido_id,
+            "whatsapp_link": whatsapp_url,
+            "pdf_url": f"/comprovante/{pedido_id}"
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/comprovante/<int:pedido_id>')
+def download_comprovante(pedido_id):
+    caminho = os.path.join(app.root_path, "uploads", "comprovantes", f"OS_{pedido_id}.pdf")
+    if not os.path.exists(caminho):
+        return jsonify({"erro": "Comprovante não encontrado."}), 404
+    return send_file(caminho, as_attachment=False)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
