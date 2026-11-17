@@ -66,7 +66,7 @@ def criar_pedido():
             """, (cliente_id, total_pedido))
             pedido_id = cursor.lastrowid
 
-            # 4. Salva itens e garante o nome do serviço para o PDF e impressora
+            # 4. Salva itens e garante 'servico_nome' para o PDF e impressora
             for item in itens:
                 cursor.execute("""
                     INSERT INTO itens_pedido (pedido_id, servico_id, quantidade, preco_unitario, subtotal)
@@ -79,12 +79,13 @@ def criar_pedido():
                     item['subtotal']
                 ))
 
-                nome_srv = item.get('nome_servico') or item.get('servico') or item.get('nome')
+                nome_srv = item.get('servico_nome') or item.get('nome_servico') or item.get('servico') or item.get('nome')
                 if not nome_srv:
                     cursor.execute("SELECT nome FROM servicos WHERE id = %s", (item['servico_id'],))
                     res = cursor.fetchone()
                     nome_srv = res['nome'] if res else f"Serviço #{item['servico_id']}"
 
+                item['servico_nome'] = nome_srv
                 item['nome_servico'] = nome_srv
                 item['servico'] = nome_srv
                 item['nome'] = nome_srv
