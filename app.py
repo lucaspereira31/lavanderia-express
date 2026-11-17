@@ -81,13 +81,17 @@ def criar_pedido():
 
             conn.commit()
 
-        # 5. Gera o PDF do comprovante
+        # 5. Gera o PDF do comprovante (garantindo que a pasta exista na nuvem)
         cliente_dados = {"nome": nome, "telefone": telefone, "cpf": cpf}
         pasta_comprovantes = os.path.join(app.root_path, "uploads", "comprovantes")
+        os.makedirs(pasta_comprovantes, exist_ok=True)
         gerar_pdf_comprovante(pedido_id, cliente_dados, itens, total_pedido, destino_pasta=pasta_comprovantes)
 
-        # 6. Dispara a impressão térmica (2 vias)
-        disparar_impressao_termica(pedido_id, cliente_dados, itens, total_pedido)
+        # 6. Dispara a impressão térmica (ignora se estiver rodando na nuvem sem USB)
+        try:
+            disparar_impressao_termica(pedido_id, cliente_dados, itens, total_pedido)
+        except Exception as e:
+            print(f"Impressora térmica indisponível neste ambiente: {e}")
 
         # 7. Formata link de WhatsApp direto com mensagem pronta
         telefone_limpo = ''.join(filter(str.isdigit, telefone))
@@ -97,30 +101,3 @@ def criar_pedido():
         mensagem = (
             f"Olá {nome}! Seu pedido na Lavanderia foi registrado com sucesso!\n\n"
             f"📄 *Ordem de Serviço:* #{pedido_id}\n"
-            f"💰 *Total:* R$ {total_pedido:.2f}\n\n"
-            f"Avisaremos assim que suas peças estiverem prontas para retirada!"
-        )
-        whatsapp_url = f"https://wa.me/{telefone_limpo}?text={urllib.parse.quote(mensagem)}"
-
-        return jsonify({
-            "sucesso": True,
-            "pedido_id": pedido_id,
-            "whatsapp_link": whatsapp_url,
-            "pdf_url": f"/comprovante/{pedido_id}"
-        })
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"erro": str(e)}), 500
-    finally:
-        conn.close()
-
-@app.route('/comprovante/<int:pedido_id>')
-def download_comprovante(pedido_id):
-    caminho = os.path.join(app.root_path, "uploads", "comprovantes", f"OS_{pedido_id}.pdf")
-    if not os.path.exists(caminho):
-        return jsonify({"erro": "Comprovante não encontrado."}), 404
-    return send_file(caminho, as_attachment=False)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)

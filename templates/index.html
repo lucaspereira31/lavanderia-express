@@ -3,114 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Morilav Lavanderia</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">   
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-<meta name="theme-color" content="#1e3a8a">
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Lavanderia Express - Ordem de Serviço</title>
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #cbd5e1;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text); padding: 16px; }
+        .container { max-width: 720px; margin: 0 auto; }
+        header { background: var(--primary); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 16px; }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        header p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.9; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        .btn { background: var(--primary); color: #fff; border: none; padding: 12px 18px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; }
+        .btn:hover { background: var(--primary-dark); }
+        .btn-secondary { background: #e2e8f0; color: var(--text); margin-top: 8px; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: #ef4444; color: #fff; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .total-box { text-align: right; font-size: 1.3rem; font-weight: 700; margin-top: 16px; color: var(--primary-dark); }
+        .modal-sucesso { display: none; background: #ecfdf5; border: 1px solid #10b981; padding: 20px; border-radius: 12px; margin-top: 16px; text-align: center; }
+        .actions-sucesso { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+        .btn-wpp { background: #16a34a; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; }
+        .btn-pdf { background: #2563eb; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; }
+    </style>
 </head>
 <body>
+<div class="container">
     <header>
-        <h1>🔴 Morilav — Ordem de Serviço</h1>
+        <h1>Lavanderia Express</h1>
+        <p>Nova Ordem de Serviço</p>
     </header>
 
-    <main class="container">
-        <!-- Seção 1: Dados do Cliente -->
-        <section class="card">
-            <h2>1. Dados do Cliente</h2>
-            <div class="grid-3">
-                <div class="form-group">
-                    <label for="cpf">CPF (digite para buscar ou cadastrar)</label>
-                    <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" required>
-                    <small id="status-cliente" class="hint"></small>
-                </div>
-                <div class="form-group">
-                    <label for="nome">Nome Completo</label>
-                    <input type="text" id="nome" placeholder="Ex: João da Silva" required>
-                </div>
-                <div class="form-group">
-                    <label for="telefone">WhatsApp / Telefone</label>
-                    <input type="text" id="telefone" placeholder="(11) 99999-9999" maxlength="15" required>
-                </div>
+    <div class="card">
+        <h2>1. Dados do Cliente</h2>
+        <div class="grid">
+            <div>
+                <label for="cpf">CPF (busca automática)</label>
+                <input type="text" id="cpf" placeholder="000.000.000-00" onblur="buscarCliente()">
             </div>
-        </section>
+            <div>
+                <label for="telefone">WhatsApp / Telefone</label>
+                <input type="text" id="telefone" placeholder="(11) 99999-9999">
+            </div>
+        </div>
+        <div style="margin-top: 12px;">
+            <label for="nome">Nome Completo</label>
+            <input type="text" id="nome" placeholder="Nome do cliente">
+        </div>
+    </div>
 
-        <!-- Seção 2: Adicionar Serviços ao Pedido -->
-        <section class="card">
-            <h2>2. Serviços da Ordem de Serviço</h2>
-            <div class="grid-4">
-                <div class="form-group">
-                    <label for="servico">Tipo de Serviço</label>
-                    <select id="servico">
-                        {% for s in servicos %}
-                        <option value="{{ s.id }}" data-nome="{{ s.nome }}" data-preco="{{ s.preco_base }}">
-                            {{ s.nome }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="quantidade">Quantidade</label>
+    <div class="card">
+        <h2>2. Adicionar Itens</h2>
+        <div class="grid">
+            <div>
+                <label for="servico">Serviço / Peça</label>
+                <select id="servico">
+                    {% for s in servicos %}
+                    <option value="{{ s.id }}" data-nome="{{ s.nome }}" data-preco="{{ s.preco_base }}">
+                        {{ s.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="quantidade">Qtd.</label>
                     <input type="number" id="quantidade" value="1" min="1">
                 </div>
-                <div class="form-group">
-                    <label for="preco">Preço Unitário (R$)</label>
-                    <input type="number" id="preco" step="0.01" min="0" placeholder="0.00">
-                </div>
-                <div class="form-group btn-align">
-                    <button type="button" id="btn-adicionar" class="btn-secondary">+ Adicionar Item</button>
+                <div>
+                    <label for="preco">Valor Unit. (R$)</label>
+                    <input type="number" id="preco" step="0.01" placeholder="0.00">
                 </div>
             </div>
-
-            <!-- Tabela de Itens Adicionados -->
-            <table class="tabela-itens">
-                <thead>
-                    <tr>
-                        <th>Serviço</th>
-                        <th>Qtd</th>
-                        <th>Preço Unit.</th>
-                        <th>Subtotal</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-itens">
-                    <tr id="linha-vazia">
-                        <td colspan="5" class="texto-centro">Nenhum serviço adicionado ainda.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="total-box">
-                <span>Total do Pedido:</span>
-                <strong id="valor-total">R$ 0,00</strong>
-            </div>
-        </section>
-
-        <!-- Seção 3: Finalização -->
-        <div class="acoes-finais">
-            <button type="button" id="btn-finalizar" class="btn-primary">
-                🖨️ Gerar Pedido, Imprimir (2 Vias) e Preparar WhatsApp
-            </button>
         </div>
+        <button type="button" class="btn btn-secondary" onclick="adicionarItem()">+ Adicionar Item ao Pedido</button>
 
-        <!-- Modal / Painel de Sucesso Pós-Pedido -->
-        <section id="painel-sucesso" class="card sucesso-card oculto">
-            <h3>✅ Ordem de Serviço #<span id="os-numero"></span> Registrada!</h3>
-            <p>As 2 vias (Cliente e Lavanderia) foram enviadas para a impressora térmica.</p>
-            <div class="botoes-pos-pedido">
-                <a id="link-whatsapp" href="#" target="_blank" class="btn-whatsapp">
-                    📲 Enviar Mensagem no WhatsApp
-                </a>
-                <a id="link-pdf" href="#" target="_blank" class="btn-pdf">
-                    📄 Baixar / Visualizar PDF (Para anexar no WhatsApp)
-                </a>
-                <button type="button" id="btn-novo-pedido" class="btn-secondary">
-                    🔄 Novo Atendimento
-                </button>
-            </div>
-        </section>
-    </main>
+        <table id="tabela-itens">
+            <thead>
+                <tr>
+                    <th>Serviço</th>
+                    <th>Qtd</th>
+                    <th>Unit.</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+        <div class="total-box">
+            Total: R$ <span id="valor-total">0.00</span>
+        </div>
+    </div>
+
+    <button type="button" class="btn" id="btn-finalizar" onclick="finalizarPedido()">Registrar Ordem de Serviço</button>
+
+    <div class="modal-sucesso" id="box-sucesso">
+        <h3 style="margin:0; color:#065f46;">Pedido #<span id="os-numero"></span> registrado!</h3>
+        <p style="margin:6px 0 0; color:#047857;">O comprovante foi gerado e salvo na nuvem.</p>
+        <div class="actions-sucesso">
+            <a id="link-wpp" href="#" target="_blank" class="btn-wpp">Enviar no WhatsApp</a>
+            <a id="link-pdf" href="#" target="_blank" class="btn-pdf">Abrir Comprovante PDF</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let itensPedido = [];
+
+    async function buscarCliente() {
+        const cpf = document.getElementById('cpf').value.trim();
+        if (!cpf) return;
+        try {
+            const res = await fetch(`/api/clientes/${encodeURIComponent(cpf)}`);
+            if (res.ok) {
+                const cliente = await res.json();
+                document.getElementById('nome').value = cliente.nome || '';
+                document.getElementById('telefone').value = cliente.telefone || '';
+            }
+        } catch (e) {
+            console.error('Erro ao buscar cliente:', e);
+        }
+    }
+
+    function adicionarItem() {
+        const select = document.getElementById('servico');
+        const option = select.options[select.selectedIndex];
+        const servico_id = parseInt(select.value);
+        const nome_servico = option.getAttribute('data-nome');
+        const quantidade = parseInt(document.getElementById('quantidade').value) || 1;
+        const preco_unitario = parseFloat(document.getElementById('preco').value) || 0;
+
+        if (preco_unitario <= 0) {
+            alert('Informe o valor unitário do serviço.');
+            return;
+        }
+
+        const subtotal = quantidade * preco_unitario;
+        itensPedido.push({ servico_id, nome_servico, quantidade, preco_unitario, subtotal });
+        document.getElementById('quantidade').value = 1;
+        document.getElementById('preco').value = '';
+        renderizarItens();
+    }
+
+    function removerItem(index) {
+        itensPedido.splice(index, 1);
+        renderizarItens();
+    }
+
+    function renderizarItens() {
+        const tbody = document.querySelector('#tabela-itens tbody');
+        tbody.innerHTML = '';
+        let total = 0;
+
+        itensPedido.forEach((item, idx) => {
+            total += item.subtotal;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.nome_servico}</td>
+                    <td>${item.quantidade}</td>
+                    <td>R$ ${item.preco_unitario.toFixed(2)}</td>
+                    <td>R$ ${item.subtotal.toFixed(2)}</td>
+                    <td><button class="btn-danger" onclick="removerItem(${idx})">X</button></td>
+                </tr>
+            `;
+        });
+        document.getElementById('valor-total').innerText = total.toFixed(2);
+    }
+
+    async function finalizarPedido() {
+        const nome = document.getElementById('nome').value.trim();
+        const cpf = document.getElementById('cpf').value.trim();
+        const telefone = document.getElementById('telefone').value.trim();
+
+        if (!nome || !cpf || !telefone || itensPedido.length === 0) {
+            alert('Preencha nome, CPF, telefone e adicione pelo menos um item.');
+            return;
+        }
+
+        const btn = document.getElementById('btn-finalizar');
+        btn.disabled = true;
+        btn.innerText = 'Salvando...';
+
+        try {
+            const res = await fetch('/api/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, cpf, telefone, itens: itensPedido })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.sucesso) {
+                document.getElementById('os-numero').innerText = data.pedido_id;
+                document.getElementById('link-wpp').href = data.whatsapp_link;
+                document.getElementById('link-pdf').href = data.pdf_url;
+                document.getElementById('box-sucesso').style.display = 'block';
+                itensPedido = [];
+                renderizarItens();
+            } else {
+                alert('Erro: ' + (data.erro || 'Falha ao salvar pedido.'));
+            }
+        } catch (e) {
+            alert('Erro de conexão com o servidor.');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Registrar Ordem de Serviço';
+        }
+    }
+</script>
 </body>
 </html>
